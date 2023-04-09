@@ -1,0 +1,15 @@
+{
+  "name": "voicemeeter-utils",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "keywords": [],
+  "author": "Raraph84",
+  "license": "ISC",
+  "dependencies": {
+    "raraph84-lib": "^2.16.4",
+    "ts-easy-voicemeeter-remote": "^2.0.1",
+    "voicemeeter-connector": "^1.2.0",
+    "win-audio": "^2.0.2"
+  }
+}
