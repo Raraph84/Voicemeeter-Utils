@@ -6,10 +6,15 @@
   "keywords": [],
   "author": "Raraph84",
   "license": "ISC",
+  "scripts": {
+    "start": "electron ."
+  },
   "dependencies": {
     "raraph84-lib": "^2.16.4",
-    "ts-easy-voicemeeter-remote": "^2.0.1",
     "voicemeeter-connector": "^1.2.0",
     "win-audio": "^2.0.2"
+  },
+  "devDependencies": {
+    "electron": "^20.3.8"
   }
 }
