@@ -1,4 +1,4 @@
-const { app, Tray, Menu } = require("electron");
+const { app, Tray, Menu, nativeImage } = require("electron");
 const { Voicemeeter, StripProperties } = require("voicemeeter-connector");
 const { speaker } = require("win-audio");
 const { getConfig } = require("raraph84-lib");
@@ -6,7 +6,7 @@ const Config = getConfig(__dirname);
 
 app.on("ready", async () => {
 
-    const tray = new Tray("icon.ico");
+    const tray = new Tray(nativeImage.createFromPath("src/icon.ico"));
     tray.setContextMenu(Menu.buildFromTemplate([{ label: "Fermer", click: () => app.quit() }]));
     tray.on("click", () => tray.popUpContextMenu());
 
