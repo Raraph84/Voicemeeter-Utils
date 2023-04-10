@@ -7,10 +7,8 @@ const Config = getConfig(__dirname);
 app.on("ready", async () => {
 
     const tray = new Tray("icon.ico");
-    tray.setContextMenu(Menu.buildFromTemplate([{
-        label: "Fermer",
-        click: () => app.quit()
-    }]));
+    tray.setContextMenu(Menu.buildFromTemplate([{ label: "Fermer", click: () => app.quit() }]));
+    tray.on("click", () => tray.popUpContextMenu());
 
     const voicemeeter = await Voicemeeter.init();
     voicemeeter.connect();
