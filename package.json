@@ -14,7 +14,7 @@
   "dependencies": {
     "electron-squirrel-startup": "^1.0.0",
     "raraph84-lib": "^2.16.4",
-    "voicemeeter-connector": "^1.2.0",
+    "voicemeeter-remote": "^0.3.0",
     "win-audio": "^2.0.2"
   },
   "devDependencies": {

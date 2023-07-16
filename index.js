@@ -1,6 +1,5 @@
-const { exec } = require("child_process");
 const { app, Tray, Menu, nativeImage } = require("electron");
-const { Voicemeeter, StripProperties } = require("voicemeeter-connector");
+const voicemeeter = require("voicemeeter-remote");
 const { speaker } = require("win-audio");
 const { getConfig } = require("raraph84-lib");
 const Config = getConfig(__dirname);
@@ -11,20 +10,22 @@ app.on("ready", async () => {
     tray.setContextMenu(Menu.buildFromTemplate([{ label: "Fermer", click: () => app.quit() }]));
     tray.on("click", () => tray.popUpContextMenu());
 
-    const voicemeeter = await Voicemeeter.init();
-    voicemeeter.connect();
+    await voicemeeter.init();
+    voicemeeter.login();
     voicemeeter.updateDeviceList();
 
-    let oldVMVolume = voicemeeter.getStripParameter(Config.voicemeeterWindowsStrip, StripProperties.Gain);
-    let oldVMMute = voicemeeter.getStripParameter(Config.voicemeeterWindowsStrip, StripProperties.Mute);
+    let oldVMVolume = voicemeeter.getStripGain(Config.voicemeeterWindowsStrip);
+    let oldVMMute = voicemeeter.getStripMute(Config.voicemeeterWindowsStrip);
 
     let oldWindowsVolume = speaker.get();
     let oldWindowsMute = speaker.isMuted();
 
-    voicemeeter.attachChangeEvent(() => {
+    setInterval(() => {
 
-        const newVMVolume = voicemeeter.getStripParameter(Config.voicemeeterWindowsStrip, StripProperties.Gain);
-        const newVMMute = voicemeeter.getStripParameter(Config.voicemeeterWindowsStrip, StripProperties.Mute);
+        if (!voicemeeter.isParametersDirty()) return;
+
+        const newVMVolume = voicemeeter.getStripGain(Config.voicemeeterWindowsStrip);
+        const newVMMute = voicemeeter.getStripMute(Config.voicemeeterWindowsStrip);
 
         if (newVMVolume !== oldVMVolume) {
             oldVMVolume = newVMVolume;
@@ -40,7 +41,8 @@ app.on("ready", async () => {
             if (mute) speaker.mute();
             else speaker.unmute();
         }
-    });
+
+    }, 1000 / 33);
 
     const volumeSyncInterval = setInterval(async () => {
 
@@ -51,31 +53,31 @@ app.on("ready", async () => {
             oldWindowsVolume = newWindowsVolume;
             const volume = Math.round(-60 + newWindowsVolume / 100 * 60);
             oldVMVolume = volume;
-            voicemeeter.setStripParameter(Config.voicemeeterWindowsStrip, StripProperties.Gain, volume);
+            voicemeeter.setStripGain(Config.voicemeeterWindowsStrip, volume);
         }
 
         if (newWindowsMute !== oldWindowsMute) {
             oldWindowsMute = newWindowsMute;
             const mute = newWindowsMute ? 1 : 0;
             oldVMMute = mute;
-            voicemeeter.setStripParameter(Config.voicemeeterWindowsStrip, StripProperties.Mute, mute);
+            voicemeeter.setStripMute(Config.voicemeeterWindowsStrip, mute);
         }
 
     }, Config.windowsSyncInterval);
 
-    let oldVoicemeeterInputDevices = voicemeeter.$inputDevices;
-    let oldVoicemeeterOutputDevices = voicemeeter.$outputDevices;
+    let oldVoicemeeterInputDevices = voicemeeter.inputDevices;
+    let oldVoicemeeterOutputDevices = voicemeeter.outputDevices;
     const deviceConnectInterval = setInterval(() => {
 
         voicemeeter.updateDeviceList();
-        const newVoicemeeterInputDevices = voicemeeter.$inputDevices;
-        const newVoicemeeterOutputDevices = voicemeeter.$outputDevices;
+        const newVoicemeeterInputDevices = voicemeeter.inputDevices;
+        const newVoicemeeterOutputDevices = voicemeeter.outputDevices;
 
         const inputPlugged = newVoicemeeterInputDevices.some((newDevice) => !oldVoicemeeterInputDevices.some((oldDevice) => oldDevice.hardwareId === newDevice.hardwareId));
         const outputPlugged = newVoicemeeterOutputDevices.some((newDevice) => !oldVoicemeeterOutputDevices.some((oldDevice) => oldDevice.hardwareId === newDevice.hardwareId));
 
         if (inputPlugged || outputPlugged)
-            exec("\"C:\\Program Files (x86)\\VB\\Voicemeeter\\voicemeeterpro\" -r", () => { });
+            voicemeeter.restartVoicemeeterAudioEngine();
 
         oldVoicemeeterInputDevices = newVoicemeeterInputDevices;
         oldVoicemeeterOutputDevices = newVoicemeeterOutputDevices;
@@ -85,6 +87,6 @@ app.on("ready", async () => {
     app.on("quit", () => {
         clearInterval(volumeSyncInterval);
         clearInterval(deviceConnectInterval);
-        voicemeeter.disconnect();
+        voicemeeter.logout();
     });
 });

@@ -1,5 +1,5 @@
 {
     "voicemeeterWindowsStrip": 3,
     "windowsSyncInterval": 100,
-    "devicePluggedReloadInterval": 1000
+    "devicePluggedReloadInterval": 500
 }
