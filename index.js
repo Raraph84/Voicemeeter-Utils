@@ -1,4 +1,5 @@
-const { app, Tray, Menu, nativeImage } = require("electron");
+const { join } = require("path");
+const { app, Tray, Menu } = require("electron");
 const voicemeeter = require("voicemeeter-remote");
 const { speaker } = require("win-audio");
 const { getConfig } = require("raraph84-lib");
@@ -6,7 +7,7 @@ const Config = getConfig(__dirname);
 
 app.on("ready", async () => {
 
-    const tray = new Tray(nativeImage.createFromPath("src/icon.ico"));
+    const tray = new Tray(join(__dirname, "src", "icon.ico"));
     tray.setContextMenu(Menu.buildFromTemplate([{ label: "Fermer", click: () => app.quit() }]));
     tray.on("click", () => tray.popUpContextMenu());
 
@@ -44,7 +45,7 @@ app.on("ready", async () => {
 
     }, 1000 / 33);
 
-    const volumeSyncInterval = setInterval(async () => {
+    const volumeSyncInterval = setInterval(() => {
 
         const newWindowsVolume = speaker.get();
         const newWindowsMute = speaker.isMuted();
