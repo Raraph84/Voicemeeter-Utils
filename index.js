@@ -1,31 +1,39 @@
 const { join } = require("path");
+const { createServer } = require("net");
 const { app, Tray, Menu } = require("electron");
 const voicemeeter = require("voicemeeter-remote");
-const { speaker } = require("win-audio");
-const { getConfig } = require("raraph84-lib");
-const Config = getConfig(__dirname);
+const config = require("./config.json");
 
 app.on("ready", async () => {
 
-    const tray = new Tray(join(__dirname, "src", "icon.ico"));
-    tray.setContextMenu(Menu.buildFromTemplate([{ label: "Fermer", click: () => app.quit() }]));
+    const tray = new Tray(join(__dirname, "src", "unmuted.png"));
+    tray.setContextMenu(Menu.buildFromTemplate([{ label: "Close", click: () => app.quit() }]));
     tray.on("click", () => tray.popUpContextMenu());
 
     await voicemeeter.init();
     voicemeeter.login();
-    voicemeeter.updateDeviceList();
 
-    let oldVMVolume = voicemeeter.getStripGain(Config.voicemeeterWindowsStrip);
+    voicemeeter.isParametersDirty();
+    let oldMicMute = voicemeeter.getStripMute(config.micStrip);
+    tray.setImage(join(__dirname, "src", oldMicMute ? "muted.png" : "unmuted.png"));
+
+    /*let oldVMVolume = voicemeeter.getStripGain(Config.voicemeeterWindowsStrip);
     let oldVMMute = voicemeeter.getStripMute(Config.voicemeeterWindowsStrip);
 
     let oldWindowsVolume = speaker.get();
-    let oldWindowsMute = speaker.isMuted();
+    let oldWindowsMute = speaker.isMuted();*/
 
     setInterval(() => {
 
         if (!voicemeeter.isParametersDirty()) return;
 
-        const newVMVolume = voicemeeter.getStripGain(Config.voicemeeterWindowsStrip);
+        const micMute = voicemeeter.getStripMute(config.micStrip);
+        if (micMute !== oldMicMute) {
+            oldMicMute = micMute;
+            microphoneToggled(micMute);
+        }
+
+        /*const newVMVolume = voicemeeter.getStripGain(Config.voicemeeterWindowsStrip);
         const newVMMute = voicemeeter.getStripMute(Config.voicemeeterWindowsStrip);
 
         if (newVMVolume !== oldVMVolume) {
@@ -41,11 +49,11 @@ app.on("ready", async () => {
             oldWindowsMute = mute;
             if (mute) speaker.mute();
             else speaker.unmute();
-        }
+        }*/
 
     }, 1000 / 33);
 
-    const volumeSyncInterval = setInterval(() => {
+    /*const volumeSyncInterval = setInterval(() => {
 
         const newWindowsVolume = speaker.get();
         const newWindowsMute = speaker.isMuted();
@@ -64,8 +72,9 @@ app.on("ready", async () => {
             voicemeeter.setStripMute(Config.voicemeeterWindowsStrip, mute);
         }
 
-    }, Config.windowsSyncInterval);
+    }, Config.windowsSyncInterval);*/
 
+    voicemeeter.updateDeviceList();
     let oldVoicemeeterInputDevices = voicemeeter.inputDevices;
     let oldVoicemeeterOutputDevices = voicemeeter.outputDevices;
     const deviceConnectInterval = setInterval(() => {
@@ -74,20 +83,87 @@ app.on("ready", async () => {
         const newVoicemeeterInputDevices = voicemeeter.inputDevices;
         const newVoicemeeterOutputDevices = voicemeeter.outputDevices;
 
-        const inputPlugged = newVoicemeeterInputDevices.some((newDevice) => !oldVoicemeeterInputDevices.some((oldDevice) => oldDevice.hardwareId === newDevice.hardwareId));
-        const outputPlugged = newVoicemeeterOutputDevices.some((newDevice) => !oldVoicemeeterOutputDevices.some((oldDevice) => oldDevice.hardwareId === newDevice.hardwareId));
-
-        if (inputPlugged || outputPlugged)
+        if (JSON.stringify(newVoicemeeterInputDevices) !== JSON.stringify(oldVoicemeeterInputDevices) || JSON.stringify(newVoicemeeterOutputDevices) !== JSON.stringify(oldVoicemeeterOutputDevices)) {
+            oldVoicemeeterInputDevices = newVoicemeeterInputDevices;
+            oldVoicemeeterOutputDevices = newVoicemeeterOutputDevices;
             voicemeeter.restartVoicemeeterAudioEngine();
+        }
 
-        oldVoicemeeterInputDevices = newVoicemeeterInputDevices;
-        oldVoicemeeterOutputDevices = newVoicemeeterOutputDevices;
+    }, config.devicePluggedReloadInterval);
 
-    }, Config.devicePluggedReloadInterval);
+    const getRecorderStates = () => {
+        const states = [];
+        const virtualBuses = voicemeeter.voicemeeterConfig.buses.filter((bus) => bus.isVirtual).length;
+        for (let i = 0; i < voicemeeter.voicemeeterConfig.buses.length - virtualBuses; i++) {
+            const bus = "A" + (i + 1);
+            states.push(voicemeeter.getRawParameterFloat("Recorder." + bus) === 1);
+        }
+        for (let i = 0; i < virtualBuses; i++) {
+            const bus = "B" + (i + 1);
+            states.push(voicemeeter.getRawParameterFloat("Recorder." + bus) === 1);
+        }
+        return states;
+    }
 
-    app.on("quit", () => {
-        clearInterval(volumeSyncInterval);
+    const setRecorderStates = (states) => {
+        const virtualBuses = voicemeeter.voicemeeterConfig.buses.filter((bus) => bus.isVirtual).length;
+        for (let i = 0; i < voicemeeter.voicemeeterConfig.buses.length - virtualBuses; i++) {
+            const bus = "A" + (i + 1);
+            voicemeeter.setRawParameterFloat("Recorder." + bus, states[i] ? 1 : 0);
+        }
+        for (let i = 0; i < virtualBuses; i++) {
+            const bus = "B" + (i + 1);
+            voicemeeter.setRawParameterFloat("Recorder." + bus, states[voicemeeter.voicemeeterConfig.buses.length - virtualBuses + i] ? 1 : 0);
+        }
+    }
+
+    let playSoundTimeout = null;
+    const playSound = (path) => {
+
+        const states = getRecorderStates();
+        setRecorderStates(voicemeeter.voicemeeterConfig.buses.map((bus, i) => config.muteUnmuteSoundBuses.includes(i)));
+
+        voicemeeter.setRawParameterString("Recorder.Load", path);
+
+        if (playSoundTimeout) {
+            playSoundTimeout.refresh();
+        } else {
+            playSoundTimeout = setTimeout(() => {
+                voicemeeter.ejectVoicemeeterCassette();
+                setRecorderStates(states);
+                playSoundTimeout = null;
+            }, 1000);
+        }
+    }
+
+    const microphoneToggled = (muted) => {
+        playSound(join(__dirname, "src", muted ? "mute.mp3" : "unmute.mp3"));
+        tray.setImage(join(__dirname, "src", muted ? "muted.png" : "unmuted.png"));
+    }
+
+    const server = createServer((socket) => {
+        let data = "";
+        socket.on("data", (chunk) => {
+            data += chunk;
+            if (data === "togglemic") {
+                voicemeeter.setStripMute(config.micStrip, !voicemeeter.getStripMute(config.micStrip));
+                socket.end();
+            }
+        });
+    });
+
+    server.listen(8983, "127.0.0.1");
+
+    app.on("will-quit", (event) => {
+        event.preventDefault();
+        server.close();
+        // clearInterval(volumeSyncInterval);
         clearInterval(deviceConnectInterval);
+        if (playSoundTimeout) {
+            setTimeout(() => app.quit(), 1500);
+            return;
+        }
         voicemeeter.logout();
+        setTimeout(() => app.quit(), 500);
     });
 });

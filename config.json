@@ -1,5 +1,11 @@
 {
     "voicemeeterWindowsStrip": 3,
     "windowsSyncInterval": 100,
-    "devicePluggedReloadInterval": 500
+    "devicePluggedReloadInterval": 5000,
+    "micStrip": 0,
+    "muteUnmuteSoundBuses": [
+        0,
+        1,
+        2
+    ]
 }
