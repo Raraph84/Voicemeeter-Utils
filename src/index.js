@@ -1,12 +1,12 @@
-const { join } = require("path");
+const { join, dirname } = require("path");
 const { createServer } = require("net");
 const { app, Tray, Menu } = require("electron");
 const voicemeeter = require("voicemeeter-remote");
-const config = require("./config.json");
+const config = require(join(dirname(__dirname), "config.json"));
 
 app.on("ready", async () => {
 
-    const tray = new Tray(join(__dirname, "src", "unmuted.png"));
+    const tray = new Tray(join(__dirname, "unmuted.png"));
     tray.setContextMenu(Menu.buildFromTemplate([{ label: "Close", click: () => app.quit() }]));
     tray.on("click", () => tray.popUpContextMenu());
 
@@ -15,7 +15,7 @@ app.on("ready", async () => {
 
     voicemeeter.isParametersDirty();
     let oldMicMute = voicemeeter.getStripMute(config.micStrip);
-    tray.setImage(join(__dirname, "src", oldMicMute ? "muted.png" : "unmuted.png"));
+    tray.setImage(join(__dirname, oldMicMute ? "muted.png" : "unmuted.png"));
 
     /*let oldVMVolume = voicemeeter.getStripGain(Config.voicemeeterWindowsStrip);
     let oldVMMute = voicemeeter.getStripMute(Config.voicemeeterWindowsStrip);
@@ -137,8 +137,8 @@ app.on("ready", async () => {
     }
 
     const microphoneToggled = (muted) => {
-        playSound(join(__dirname, "src", muted ? "mute.mp3" : "unmute.mp3"));
-        tray.setImage(join(__dirname, "src", muted ? "muted.png" : "unmuted.png"));
+        playSound(join(process.resourcesPath, muted ? "mute.mp3" : "unmute.mp3"));
+        tray.setImage(join(__dirname, muted ? "muted.png" : "unmuted.png"));
     }
 
     const server = createServer((socket) => {

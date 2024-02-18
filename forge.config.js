@@ -1,7 +1,8 @@
 module.exports = {
     packagerConfig: {
         asar: true,
-        icon: "src/icon"
+        icon: "src/icon",
+        extraResource: ["src/mute.mp3", "src/unmute.mp3", "toggle.js"]
     },
     rebuildConfig: {},
     makers: [
