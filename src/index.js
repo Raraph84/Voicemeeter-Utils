@@ -2,6 +2,7 @@ const { join, dirname } = require("path");
 const { createServer } = require("net");
 const { app, Tray, Menu } = require("electron");
 const voicemeeter = require("voicemeeter-remote");
+const volume = require("./volume");
 const config = require(join(dirname(__dirname), "config.json"));
 
 app.on("ready", async () => {
@@ -17,11 +18,34 @@ app.on("ready", async () => {
     let oldMicMute = voicemeeter.getStripMute(config.micStrip);
     tray.setImage(join(__dirname, oldMicMute ? "muted.png" : "unmuted.png"));
 
-    /*let oldVMVolume = voicemeeter.getStripGain(Config.voicemeeterWindowsStrip);
-    let oldVMMute = voicemeeter.getStripMute(Config.voicemeeterWindowsStrip);
+    let oldVMVolume = voicemeeter.getStripGain(config.windowsSyncStrip);
+    let oldVMMuted = voicemeeter.getStripMute(config.windowsSyncStrip);
 
-    let oldWindowsVolume = speaker.get();
-    let oldWindowsMute = speaker.isMuted();*/
+    let oldWindowsVolume = await volume.getVolume();
+    let oldWindowsMuted = await volume.getMuted();
+
+    const pool = new volume.VolumePool();
+    pool.on("volume", (newWindowsVolume) => {
+
+        if (newWindowsVolume === oldWindowsVolume) return;
+        oldWindowsVolume = newWindowsVolume;
+
+        const volume = Math.round(-60 + newWindowsVolume / 100 * 60);
+        oldVMVolume = volume;
+        console.log("newWindowsVolume", newWindowsVolume, "volume", volume);
+        voicemeeter.setStripGain(config.windowsSyncStrip, volume);
+    });
+    pool.on("muted", (newWindowsMuted) => {
+
+        if (newWindowsMuted === oldWindowsMuted) return;
+        oldWindowsMuted = newWindowsMuted;
+
+        const muted = newWindowsMuted ? 1 : 0;
+        oldVMMuted = muted;
+        console.log("newWindowsMute", newWindowsMuted, "mute", muted);
+        voicemeeter.setStripMute(config.windowsSyncStrip, muted);
+    });
+    pool.start(1000 / 33);
 
     setInterval(() => {
 
@@ -30,49 +54,30 @@ app.on("ready", async () => {
         const micMute = voicemeeter.getStripMute(config.micStrip);
         if (micMute !== oldMicMute) {
             oldMicMute = micMute;
-            microphoneToggled(micMute);
+            playSound(join(app.isPackaged ? process.resourcesPath : __dirname, micMute ? "mute.mp3" : "unmute.mp3"));
+            tray.setImage(join(__dirname, micMute ? "muted.png" : "unmuted.png"));
         }
 
-        /*const newVMVolume = voicemeeter.getStripGain(Config.voicemeeterWindowsStrip);
-        const newVMMute = voicemeeter.getStripMute(Config.voicemeeterWindowsStrip);
+        const newVMVolume = voicemeeter.getStripGain(config.windowsSyncStrip);
+        const newVMMuted = voicemeeter.getStripMute(config.windowsSyncStrip);
 
         if (newVMVolume !== oldVMVolume) {
             oldVMVolume = newVMVolume;
             const volume = Math.min(Math.round((newVMVolume + 60) / 60 * 100), 100);
             oldWindowsVolume = volume;
-            speaker.set(volume);
+            console.log("newVMVolume", newVMVolume, "volume", volume);
+            pool.setVolume(volume);
         }
 
-        if (newVMMute !== oldVMMute) {
-            oldVMMute = newVMMute;
-            const mute = newVMMute === 1;
-            oldWindowsMute = mute;
-            if (mute) speaker.mute();
-            else speaker.unmute();
-        }*/
+        if (newVMMuted !== oldVMMuted) {
+            oldVMMuted = newVMMuted;
+            const muted = newVMMuted === 1;
+            oldWindowsMuted = muted;
+            console.log("newVMMute", newVMMuted, "mute", muted);
+            pool.setMuted(muted);
+        }
 
     }, 1000 / 33);
-
-    /*const volumeSyncInterval = setInterval(() => {
-
-        const newWindowsVolume = speaker.get();
-        const newWindowsMute = speaker.isMuted();
-
-        if (newWindowsVolume !== oldWindowsVolume) {
-            oldWindowsVolume = newWindowsVolume;
-            const volume = Math.round(-60 + newWindowsVolume / 100 * 60);
-            oldVMVolume = volume;
-            voicemeeter.setStripGain(Config.voicemeeterWindowsStrip, volume);
-        }
-
-        if (newWindowsMute !== oldWindowsMute) {
-            oldWindowsMute = newWindowsMute;
-            const mute = newWindowsMute ? 1 : 0;
-            oldVMMute = mute;
-            voicemeeter.setStripMute(Config.voicemeeterWindowsStrip, mute);
-        }
-
-    }, Config.windowsSyncInterval);*/
 
     voicemeeter.updateDeviceList();
     let oldVoicemeeterInputDevices = voicemeeter.inputDevices;
@@ -136,11 +141,6 @@ app.on("ready", async () => {
         }
     }
 
-    const microphoneToggled = (muted) => {
-        playSound(join(process.resourcesPath, muted ? "mute.mp3" : "unmute.mp3"));
-        tray.setImage(join(__dirname, muted ? "muted.png" : "unmuted.png"));
-    }
-
     const server = createServer((socket) => {
         let data = "";
         socket.on("data", (chunk) => {
@@ -157,7 +157,7 @@ app.on("ready", async () => {
     app.on("will-quit", (event) => {
         event.preventDefault();
         server.close();
-        // clearInterval(volumeSyncInterval);
+        pool.stop();
         clearInterval(deviceConnectInterval);
         if (playSoundTimeout) {
             setTimeout(() => app.quit(), 1500);
