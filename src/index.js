@@ -32,7 +32,6 @@ app.on("ready", async () => {
 
         const volume = Math.round(-60 + newWindowsVolume / 100 * 60);
         oldVMVolume = volume;
-        console.log("newWindowsVolume", newWindowsVolume, "volume", volume);
         voicemeeter.setStripGain(config.windowsSyncStrip, volume);
     });
     pool.on("muted", (newWindowsMuted) => {
@@ -42,10 +41,9 @@ app.on("ready", async () => {
 
         const muted = newWindowsMuted ? 1 : 0;
         oldVMMuted = muted;
-        console.log("newWindowsMute", newWindowsMuted, "mute", muted);
         voicemeeter.setStripMute(config.windowsSyncStrip, muted);
     });
-    pool.start(1000 / 33);
+    pool.start(1000 / 15);
 
     setInterval(() => {
 
@@ -65,7 +63,6 @@ app.on("ready", async () => {
             oldVMVolume = newVMVolume;
             const volume = Math.min(Math.round((newVMVolume + 60) / 60 * 100), 100);
             oldWindowsVolume = volume;
-            console.log("newVMVolume", newVMVolume, "volume", volume);
             pool.setVolume(volume);
         }
 
@@ -73,11 +70,10 @@ app.on("ready", async () => {
             oldVMMuted = newVMMuted;
             const muted = newVMMuted === 1;
             oldWindowsMuted = muted;
-            console.log("newVMMute", newVMMuted, "mute", muted);
             pool.setMuted(muted);
         }
 
-    }, 1000 / 33);
+    }, 1000 / 15);
 
     voicemeeter.updateDeviceList();
     let oldVoicemeeterInputDevices = voicemeeter.inputDevices;
@@ -156,13 +152,14 @@ app.on("ready", async () => {
 
     app.on("will-quit", (event) => {
         event.preventDefault();
-        server.close();
-        pool.stop();
-        clearInterval(deviceConnectInterval);
         if (playSoundTimeout) {
             setTimeout(() => app.quit(), 1500);
             return;
         }
+        tray.destroy();
+        server.close();
+        pool.stop();
+        clearInterval(deviceConnectInterval);
         voicemeeter.logout();
         setTimeout(() => app.quit(), 500);
     });
