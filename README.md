@@ -7,7 +7,8 @@ Some utils for Voicemeeter built in Electron.
 - Sync Windows volume/mute to a Voicemeeter strip volume/mute.
 - Automatically reload Voicemeeter when a device is plugged in.
 - Play a sound and change the tray icon when microphone is toggled.
-- Create TCP server for toggle the microphone.
+- Create TCP server for toggle the microphone. (for bind a script that call the server to a key in Razer Synapse)
+- Automatically disable VBAN outgoing streams if no sound is played. (for save data if you are using VBAN over a private VPN over mobile data)
 
 ## Roadmap
 

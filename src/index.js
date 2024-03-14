@@ -45,7 +45,7 @@ app.on("ready", async () => {
     });
     pool.start(1000 / 15);
 
-    setInterval(() => {
+    const windowsVolumeSyncInterval = setInterval(() => {
 
         if (!voicemeeter.isParametersDirty()) return;
 
@@ -150,16 +150,38 @@ app.on("ready", async () => {
 
     server.listen(8983, "127.0.0.1");
 
+    const lastOutgoingStreamsEnabled = config.vbanOutgoingStreamsToggler.map(() => false);
+    const vbanOutgoingStreamsTogglerInterval = setInterval(() => {
+
+        for (let i = 0; i < config.vbanOutgoingStreamsToggler.length; i++) {
+
+            const from = voicemeeter.getRawParameterFloat("vban.outstream[" + config.vbanOutgoingStreamsToggler[i] + "].route");
+            const level = voicemeeter.getLevel(3, from * 8);
+            const enabled = level > 0;
+
+            if (enabled !== lastOutgoingStreamsEnabled[i]) {
+                voicemeeter.setRawParameterFloat("vban.outstream[" + config.vbanOutgoingStreamsToggler[i] + "].on", enabled ? 1 : 0);
+                lastOutgoingStreamsEnabled[i] = enabled;
+            }
+        }
+
+    }, 100);
+
+    let quitting = false;
     app.on("will-quit", (event) => {
+        if (quitting) return;
         event.preventDefault();
         if (playSoundTimeout) {
             setTimeout(() => app.quit(), 1500);
             return;
         }
+        quitting = true;
+        clearInterval(windowsVolumeSyncInterval);
+        clearInterval(deviceConnectInterval);
+        clearInterval(vbanOutgoingStreamsTogglerInterval);
         tray.destroy();
         server.close();
         pool.stop();
-        clearInterval(deviceConnectInterval);
         voicemeeter.logout();
         setTimeout(() => app.quit(), 500);
     });
