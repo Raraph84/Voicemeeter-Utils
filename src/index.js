@@ -156,8 +156,14 @@ app.on("ready", async () => {
         for (let i = 0; i < config.vbanOutgoingStreamsToggler.length; i++) {
 
             const from = voicemeeter.getRawParameterFloat("vban.outstream[" + config.vbanOutgoingStreamsToggler[i] + "].route");
-            const level = voicemeeter.getLevel(3, from * 8);
-            const enabled = level > 0;
+            let enabled = false;
+            for (let i = 0; i < 8; i++) {
+                const level = voicemeeter.getLevel(3, from * 8 + i);
+                if (level > 0) {
+                    enabled = true;
+                    break;
+                }
+            }
 
             if (enabled !== lastOutgoingStreamsEnabled[i]) {
                 voicemeeter.setRawParameterFloat("vban.outstream[" + config.vbanOutgoingStreamsToggler[i] + "].on", enabled ? 1 : 0);
