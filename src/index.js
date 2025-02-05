@@ -2,7 +2,6 @@ const { join, dirname } = require("path");
 const { createServer } = require("net");
 const { app, Tray, Menu } = require("electron");
 const voicemeeter = require("voicemeeter-remote");
-const volume = require("./volume");
 const config = require(join(dirname(__dirname), "config.json"));
 
 app.on("ready", async () => {
@@ -18,37 +17,6 @@ app.on("ready", async () => {
     let oldMicMute = voicemeeter.getStripMute(config.micStrip);
     tray.setImage(join(__dirname, oldMicMute ? "muted.png" : "unmuted.png"));
 
-    /** @type {number} */
-    let oldVMVolume = voicemeeter.getStripGain(config.windowsSyncStrip);
-    /** @type {number} */
-    let oldVMMuted = voicemeeter.getStripMute(config.windowsSyncStrip);
-
-    /** @type {number} */
-    let oldWindowsVolume = await volume.getVolume();
-    /** @type {boolean} */
-    let oldWindowsMuted = await volume.getMuted();
-
-    const pool = new volume.VolumePool();
-    pool.on("volume", (newWindowsVolume) => {
-
-        if (newWindowsVolume === oldWindowsVolume) return;
-
-        oldWindowsVolume = newWindowsVolume;
-        oldVMVolume = percentToDb(newWindowsVolume);
-
-        voicemeeter.setStripGain(config.windowsSyncStrip, oldVMVolume);
-    });
-    pool.on("muted", (newWindowsMuted) => {
-
-        if (newWindowsMuted === oldWindowsMuted) return;
-
-        oldWindowsMuted = newWindowsMuted;
-        oldVMMuted = newWindowsMuted ? 1 : 0;
-
-        voicemeeter.setStripMute(config.windowsSyncStrip, oldVMMuted);
-    });
-    pool.start(1000 / 15);
-
     const windowsVolumeSyncInterval = setInterval(() => {
 
         if (!voicemeeter.isParametersDirty()) return;
@@ -58,21 +26,6 @@ app.on("ready", async () => {
             oldMicMute = micMute;
             playSound(join(app.isPackaged ? process.resourcesPath : __dirname, micMute ? "mute.mp3" : "unmute.mp3"));
             tray.setImage(join(__dirname, micMute ? "muted.png" : "unmuted.png"));
-        }
-
-        const newVMVolume = voicemeeter.getStripGain(config.windowsSyncStrip);
-        const newVMMuted = voicemeeter.getStripMute(config.windowsSyncStrip);
-
-        if (newVMVolume !== oldVMVolume) {
-            oldVMVolume = newVMVolume;
-            oldWindowsVolume = dbToPercent(newVMVolume);
-            pool.setVolume(oldWindowsVolume);
-        }
-
-        if (newVMMuted !== oldVMMuted) {
-            oldVMMuted = newVMMuted;
-            oldWindowsMuted = !!newVMMuted;
-            pool.setMuted(oldWindowsMuted);
         }
 
     }, 1000 / 15);
@@ -194,6 +147,3 @@ app.on("ready", async () => {
         setTimeout(() => app.quit(), 500);
     });
 });
-
-const dbToPercent = (db) => Math.min(Math.pow(10, db / 10) * 100, 100);
-const percentToDb = (percent) => Math.log10(percent / 100) * 10;

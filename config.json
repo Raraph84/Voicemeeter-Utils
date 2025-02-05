@@ -4,8 +4,7 @@
     "micStrip": 0,
     "muteUnmuteSoundBuses": [
         0,
-        1,
-        2
+        1
     ],
     "vbanOutgoingStreamsToggler": [
         0,
