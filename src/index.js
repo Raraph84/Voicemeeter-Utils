@@ -18,30 +18,34 @@ app.on("ready", async () => {
     let oldMicMute = voicemeeter.getStripMute(config.micStrip);
     tray.setImage(join(__dirname, oldMicMute ? "muted.png" : "unmuted.png"));
 
+    /** @type {number} */
     let oldVMVolume = voicemeeter.getStripGain(config.windowsSyncStrip);
+    /** @type {number} */
     let oldVMMuted = voicemeeter.getStripMute(config.windowsSyncStrip);
 
+    /** @type {number} */
     let oldWindowsVolume = await volume.getVolume();
+    /** @type {boolean} */
     let oldWindowsMuted = await volume.getMuted();
 
     const pool = new volume.VolumePool();
     pool.on("volume", (newWindowsVolume) => {
 
         if (newWindowsVolume === oldWindowsVolume) return;
-        oldWindowsVolume = newWindowsVolume;
 
-        const volume = Math.round(-60 + newWindowsVolume / 100 * 60);
-        oldVMVolume = volume;
-        voicemeeter.setStripGain(config.windowsSyncStrip, volume);
+        oldWindowsVolume = newWindowsVolume;
+        oldVMVolume = percentToDb(newWindowsVolume);
+
+        voicemeeter.setStripGain(config.windowsSyncStrip, oldVMVolume);
     });
     pool.on("muted", (newWindowsMuted) => {
 
         if (newWindowsMuted === oldWindowsMuted) return;
-        oldWindowsMuted = newWindowsMuted;
 
-        const muted = newWindowsMuted ? 1 : 0;
-        oldVMMuted = muted;
-        voicemeeter.setStripMute(config.windowsSyncStrip, muted);
+        oldWindowsMuted = newWindowsMuted;
+        oldVMMuted = newWindowsMuted ? 1 : 0;
+
+        voicemeeter.setStripMute(config.windowsSyncStrip, oldVMMuted);
     });
     pool.start(1000 / 15);
 
@@ -61,16 +65,14 @@ app.on("ready", async () => {
 
         if (newVMVolume !== oldVMVolume) {
             oldVMVolume = newVMVolume;
-            const volume = Math.min(Math.round((newVMVolume + 60) / 60 * 100), 100);
-            oldWindowsVolume = volume;
-            pool.setVolume(volume);
+            oldWindowsVolume = dbToPercent(newVMVolume);
+            pool.setVolume(oldWindowsVolume);
         }
 
         if (newVMMuted !== oldVMMuted) {
             oldVMMuted = newVMMuted;
-            const muted = newVMMuted === 1;
-            oldWindowsMuted = muted;
-            pool.setMuted(muted);
+            oldWindowsMuted = !!newVMMuted;
+            pool.setMuted(oldWindowsMuted);
         }
 
     }, 1000 / 15);
@@ -104,7 +106,7 @@ app.on("ready", async () => {
             states.push(voicemeeter.getRawParameterFloat("Recorder." + bus) === 1);
         }
         return states;
-    }
+    };
 
     const setRecorderStates = (states) => {
         const virtualBuses = voicemeeter.voicemeeterConfig.buses.filter((bus) => bus.isVirtual).length;
@@ -116,7 +118,7 @@ app.on("ready", async () => {
             const bus = "B" + (i + 1);
             voicemeeter.setRawParameterFloat("Recorder." + bus, states[voicemeeter.voicemeeterConfig.buses.length - virtualBuses + i] ? 1 : 0);
         }
-    }
+    };
 
     let playSoundTimeout = null;
     const playSound = (path) => {
@@ -135,7 +137,7 @@ app.on("ready", async () => {
                 playSoundTimeout = null;
             }, 1000);
         }
-    }
+    };
 
     const server = createServer((socket) => {
         let data = "";
@@ -192,3 +194,6 @@ app.on("ready", async () => {
         setTimeout(() => app.quit(), 500);
     });
 });
+
+const dbToPercent = (db) => Math.min(Math.pow(10, db / 10) * 100, 100);
+const percentToDb = (percent) => Math.log10(percent / 100) * 10;
