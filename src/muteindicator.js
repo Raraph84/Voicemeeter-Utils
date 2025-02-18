@@ -5,15 +5,15 @@ let oldMicMute = null;
 
 module.exports.start = (config, voicemeeter, tray) => {
     oldMicMute = voicemeeter.getStripMute(config.micStrip);
-    tray.setImage(join(__dirname, oldMicMute ? "muted.png" : "unmuted.png"));
+    tray.setImage(join(__dirname, "assets", oldMicMute ? "muted.png" : "unmuted.png"));
 };
 
-module.exports.voicemeeterParameterDirty = (config, voicemeeter,  tray) => {
+module.exports.voicemeeterParameterDirty = (config, voicemeeter, tray) => {
 
     const micMute = voicemeeter.getStripMute(config.micStrip);
     if (micMute !== oldMicMute) {
         oldMicMute = micMute;
-        require("./playsound").playSound(config, voicemeeter, join(app.isPackaged ? process.resourcesPath : __dirname, micMute ? "mute.mp3" : "unmute.mp3"));
-        tray.setImage(join(__dirname, micMute ? "muted.png" : "unmuted.png"));
+        require("./playsound").playSound(config, voicemeeter, join(app.isPackaged ? process.resourcesPath : join(__dirname, "assets"), micMute ? "mute.mp3" : "unmute.mp3"));
+        tray.setImage(join(__dirname, "assets", micMute ? "muted.png" : "unmuted.png"));
     }
 };

@@ -5,7 +5,7 @@ const config = require("../config");
 
 app.on("ready", async () => {
 
-    const tray = new Tray(join(__dirname, "unmuted.png"));
+    const tray = new Tray(join(__dirname, "assets", "unmuted.png"));
     tray.setContextMenu(Menu.buildFromTemplate([{ label: "Close", click: () => app.quit() }]));
     tray.on("click", () => tray.popUpContextMenu());
 

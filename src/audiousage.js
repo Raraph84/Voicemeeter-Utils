@@ -2,7 +2,7 @@ const { join } = require("path");
 const { execFile } = require("child_process");
 const { EventEmitter } = require("stream");
 
-const exe = join(__dirname, "audiousage.exe");
+const exe = join(__dirname, "assets", "audioUsage.exe");
 
 /**
  * @returns {Promise<{ id: string; name: string; usages: string[] }[]>} 
@@ -18,7 +18,7 @@ const getUsages = () => new Promise((resolve, reject) => {
     proc.on("close", (code) => {
 
         if (code !== 0) {
-            reject(new Error(`Volume process exited with code ${code}`));
+            reject(new Error(`Audio usage process exited with code ${code}`));
             return;
         }
 

@@ -2,7 +2,7 @@ const { join } = require("path");
 const { execFile } = require("child_process");
 const EventEmitter = require("events");
 
-const exe = join(__dirname, "volume.exe");
+const exe = join(__dirname, "assets", "volume.exe");
 
 /**
  * @returns {Promise<number>} 
