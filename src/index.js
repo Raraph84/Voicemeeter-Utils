@@ -14,10 +14,12 @@ app.on("ready", async () => {
 
     voicemeeter.isParametersDirty();
     require("./muteindicator").start(config, voicemeeter, tray);
+    require("./usedMicInput").start(config, voicemeeter);
 
     const voicemeeterParameterDirtyInterval = setInterval(() => {
         if (!voicemeeter.isParametersDirty()) return;
         require("./muteindicator").voicemeeterParameterDirty(config, voicemeeter, tray);
+        require("./usedMicInput").voicemeeterParameterDirty(config, voicemeeter);
     }, 1000 / 15);
 
     require("./inputsautoreload").start(config, voicemeeter);
