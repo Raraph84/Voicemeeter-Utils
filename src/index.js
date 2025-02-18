@@ -1,7 +1,7 @@
-const { join, dirname } = require("path");
+const { join } = require("path");
 const { app, Tray, Menu } = require("electron");
 const voicemeeter = require("voicemeeter-remote");
-const config = require(join(dirname(__dirname), "config.json"));
+const config = require("../config");
 
 app.on("ready", async () => {
 
