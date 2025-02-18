@@ -1,6 +1,8 @@
 # Voicemeeter Utils
 
-Some utils for Voicemeeter built in Electron.
+Some utils for Voicemeeter built with ElectronJS.
+
+This project is also using cpp scripts from [Raraph84/Windows-Tools](https://github.com/Raraph84/Windows-Tools)
 
 ## Features
 
