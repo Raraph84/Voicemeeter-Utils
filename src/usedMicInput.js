@@ -1,4 +1,6 @@
-let stripUsedInterval = null;
+const { AudioUsagePool } = require("./audiousage");
+
+const pool = new AudioUsagePool();
 let busesUsed = [];
 let oldUsed = false;
 
@@ -9,15 +11,14 @@ module.exports.start = (config, voicemeeter) => {
     assignBusesShortNames(voicemeeter);
     updateUsed(config, voicemeeter);
 
-    stripUsedInterval = setInterval(async () => {
-
-        const devices = await require("./audiousage").getUsages();
+    pool.on("update", (devices) => {
         busesUsed = devices
             .filter((device) => device.usages.length && device.name.startsWith("Voicemeeter Out ") && device.name.endsWith(" (VB-Audio Voicemeeter VAIO)"))
             .map((device) => device.name.split(" ")[2]);
         updateUsed(config, voicemeeter);
+    });
 
-    }, config.usedMicInput.stripUsedCheckInterval);
+    pool.start(config.usedMicInput.stripUsedCheckInterval);
 };
 
 module.exports.voicemeeterParameterDirty = (config, voicemeeter) => {
@@ -25,9 +26,9 @@ module.exports.voicemeeterParameterDirty = (config, voicemeeter) => {
     updateUsed(config, voicemeeter);
 };
 
-module.exports.stop = () => {
+module.exports.stop = (config) => {
     if (!config.usedMicInput) return;
-    clearInterval(stripUsedInterval);
+    pool.stop();
 };
 
 /**

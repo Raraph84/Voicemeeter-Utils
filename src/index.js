@@ -36,6 +36,7 @@ app.on("ready", async () => {
         require("./inputsautoreload").stop();
         require("./vbanautodisable").stop();
         require("./remotemute").stop();
+        require("./usedMicInput").stop(config);
         tray.destroy();
         voicemeeter.logout();
         setTimeout(() => app.quit(), 500);

@@ -10,6 +10,6 @@ module.exports = {
         micStrip: 0,
         unusedInput: (input) => input.name === "Microphone (Yeti Classic)" && input.type === 1, // 1 is MME
         usedInput: (input) => input.name === "Microphone (NVIDIA Broadcast)" && input.type === 1, // 1 is MME
-        stripUsedCheckInterval: 5000
+        stripUsedCheckInterval: 1000
     }
 };
