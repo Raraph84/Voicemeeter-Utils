@@ -15,11 +15,13 @@ app.on("ready", async () => {
     voicemeeter.isParametersDirty();
     require("./muteindicator").start(config, voicemeeter, tray);
     require("./usedMicInput").start(config, voicemeeter);
+    require("./discordMuteSync").start(config, voicemeeter);
 
     const voicemeeterParameterDirtyInterval = setInterval(() => {
         if (!voicemeeter.isParametersDirty()) return;
         require("./muteindicator").voicemeeterParameterDirty(config, voicemeeter, tray);
         require("./usedMicInput").voicemeeterParameterDirty(config, voicemeeter);
+        require("./discordMuteSync").voicemeeterParameterDirty(config, voicemeeter);
     }, 1000 / 15);
 
     require("./inputsautoreload").start(config, voicemeeter);
@@ -37,6 +39,7 @@ app.on("ready", async () => {
         require("./vbanautodisable").stop();
         require("./remotemute").stop();
         require("./usedMicInput").stop(config);
+        require("./discordMuteSync").stop(config);
         tray.destroy();
         voicemeeter.logout();
         setTimeout(() => app.quit(), 500);
