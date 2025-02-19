@@ -8,8 +8,9 @@ module.exports = {
     // Example: Use NVIDIA Broadcast only when the mic strip is used to reduce GPU usage
     usedMicInput: {
         micStrip: 0,
-        unusedInput: (input) => input.name === "Microphone (Yeti Classic)" && input.type === 1, // 1 is WDM
-        usedInput: (input) => input.name === "Microphone (NVIDIA Broadcast)" && input.type === 1, // 1 is WDM
+        // Input type 1 is WDM
+        unusedInput: (input) => input.name === "Microphone (Yeti Classic)" && input.type === 1,
+        usedInput: (input) => input.name === "Microphone (NVIDIA Broadcast)" && input.type === 1,
         stripUsedCheckInterval: 1000
     }
 };

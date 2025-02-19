@@ -24,13 +24,14 @@ Clone the repo :
 ```
 git clone https://github.com/Raraph84/Voicemeeter-Utils
 ```
+Copy the `config.example.js` to `config.js` and fill it  
 Install libs and build :
 ```
 cd Voicemeeter-Utils
 npm install
 npm run package
 ```
-The built exe is in `Voicemeeter-Utils/out`
+The built exe file is in `Voicemeeter-Utils/out`
 
 ## Contributions
 
