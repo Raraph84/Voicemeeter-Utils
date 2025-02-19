@@ -1,18 +1,28 @@
 const { AudioUsagePool } = require("./audiousage");
 
 const pool = new AudioUsagePool();
-let busesUsed = [];
-let oldUsed = false;
+
+const busesUsed = {
+    sent: [],
+    physical: [],
+    windows: [],
+    stripMuted: false
+};
 
 module.exports.start = (config, voicemeeter) => {
-
     if (!config.usedMicInput) return;
 
-    assignBusesShortNames(voicemeeter);
-    updateUsed(config, voicemeeter);
+    let physical = 0;
+    let virtual = 0;
+    for (const bus of voicemeeter.voicemeeterConfig.buses) {
+        if (bus.isVirtual) bus.shortName = "B" + ++virtual;
+        else bus.shortName = "A" + ++physical;
+    }
+
+    this.voicemeeterParameterDirty(config, voicemeeter);
 
     pool.on("update", (devices) => {
-        busesUsed = devices
+        busesUsed.windows = devices
             .filter((device) => device.usages.length && device.name.startsWith("Voicemeeter Out ") && device.name.endsWith(" (VB-Audio Voicemeeter VAIO)"))
             .map((device) => device.name.split(" ")[2]);
         updateUsed(config, voicemeeter);
@@ -23,6 +33,13 @@ module.exports.start = (config, voicemeeter) => {
 
 module.exports.voicemeeterParameterDirty = (config, voicemeeter) => {
     if (!config.usedMicInput) return;
+
+    const sentBuses = voicemeeter.voicemeeterConfig.buses.filter((bus) => voicemeeter["getStrip" + bus.shortName](config.usedMicInput.micStrip));
+
+    busesUsed.sent = sentBuses.filter((bus) => !voicemeeter.getBusMute(bus.id)).map((bus) => bus.shortName);
+    busesUsed.physical = sentBuses.filter((bus) => !bus.isVirtual && voicemeeter.getRawParameterString(`Bus[${bus.id}].device.name`)).map((bus) => bus.shortName);
+    busesUsed.stripMuted = !!voicemeeter.getStripMute(config.usedMicInput.micStrip);
+
     updateUsed(config, voicemeeter);
 };
 
@@ -31,23 +48,15 @@ module.exports.stop = (config) => {
     pool.stop();
 };
 
+let oldUsed = false;
+
 /**
  * @param {import("voicemeeter-remote")} voicemeeter 
  */
 const updateUsed = (config, voicemeeter) => {
 
-    let used = false;
-    for (const bus of voicemeeter.voicemeeterConfig.buses) {
-
-        const strip = voicemeeter["getStrip" + bus.shortName](config.usedMicInput.micStrip);
-        if (!strip) continue;
-
-        if (busesUsed.includes(bus.shortName) ||
-            (!strip.isVirtual && voicemeeter.getRawParameterString(`Bus[${bus.id}].device.name`))) {
-            used = true;
-            break;
-        }
-    }
+    const used = !busesUsed.stripMuted && voicemeeter.voicemeeterConfig.buses
+        .some((bus) => busesUsed.sent.includes(bus.shortName) && (busesUsed.physical.includes(bus.shortName) || busesUsed.windows.includes(bus.shortName)));
 
     if (used === oldUsed) return;
     oldUsed = used;
@@ -55,26 +64,10 @@ const updateUsed = (config, voicemeeter) => {
     const device = voicemeeter.inputDevices.find(used ? config.usedMicInput.usedInput : config.usedMicInput.unusedInput);
     if (!device) return;
 
-    switchToDevice(voicemeeter, config.usedMicInput.micStrip, device);
-};
-
-/**
- * @param {import("voicemeeter-remote")} voicemeeter 
- */
-const switchToDevice = (voicemeeter, strip, device) => {
-
-    const current = voicemeeter.getRawParameterString(`Strip[${strip}].device.name`);
+    const current = voicemeeter.getRawParameterString(`Strip[${config.usedMicInput.micStrip}].device.name`);
     if (current === device.name) return;
 
-    const type = { 1: "mme", 2: "ks", 3: "wdm", 4: "asio" }[device.type];
-    voicemeeter.setRawParameterString(`Strip[${strip}].device.${type}`, device.name);
-};
+    const type = { 1: "wdm", 2: "ks", 3: "mme", 4: "asio" }[device.type];
 
-const assignBusesShortNames = (voicemeeter) => {
-    let physical = 0;
-    let virtual = 0;
-    for (const bus of voicemeeter.voicemeeterConfig.buses) {
-        if (bus.isVirtual) bus.shortName = "B" + ++virtual;
-        else bus.shortName = "A" + ++physical;
-    }
+    voicemeeter.setRawParameterString(`Strip[${config.usedMicInput.micStrip}].device.${type}`, device.name);
 };
