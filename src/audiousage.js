@@ -1,8 +1,9 @@
 const { join } = require("path");
-const { execFile } = require("child_process");
+const { spawn } = require("child_process");
 const { EventEmitter } = require("stream");
+const { app } = require("electron");
 
-const exe = join(__dirname, "assets", "audioUsage.exe");
+const exe = join(app.isPackaged ? process.resourcesPath : __dirname, "assets", "audioUsage.exe");
 
 /**
  * @returns {Promise<{ id: string; name: string; usages: string[] }[]>} 
@@ -49,7 +50,7 @@ class AudioUsagePool extends EventEmitter {
      */
     start(interval) {
 
-        this.#proc = execFile(exe, ["pool", interval.toString()]);
+        this.#proc = spawn(exe, ["pool", interval.toString()]);
 
         let devices = [];
         let data = "";

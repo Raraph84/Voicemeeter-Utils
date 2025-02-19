@@ -1,15 +1,16 @@
 const { join } = require("path");
-const { execFile } = require("child_process");
+const { spawn } = require("child_process");
+const { app } = require("electron");
 const EventEmitter = require("events");
 
-const exe = join(__dirname, "assets", "volume.exe");
+const exe = join(app.isPackaged ? process.resourcesPath : __dirname, "assets", "volume.exe");
 
 /**
  * @returns {Promise<number>} 
  */
 const getVolume = () => new Promise((resolve, reject) => {
 
-    const proc = execFile(exe, ["getvolume"]);
+    const proc = spawn(exe, ["getvolume"]);
 
     let data = "";
     proc.stdout.on("data", (chunk) => data += chunk);
@@ -28,7 +29,7 @@ const getVolume = () => new Promise((resolve, reject) => {
  */
 const getMuted = () => new Promise((resolve, reject) => {
 
-    const proc = execFile(exe, ["getmuted"]);
+    const proc = spawn(exe, ["getmuted"]);
 
     let data = "";
     proc.stdout.on("data", (chunk) => data += chunk);
@@ -48,7 +49,7 @@ const getMuted = () => new Promise((resolve, reject) => {
  */
 const setVolume = (volume) => new Promise((resolve, reject) => {
 
-    const proc = execFile(exe, ["setvolume", volume.toString()]);
+    const proc = spawn(exe, ["setvolume", volume.toString()]);
     proc.on("error", reject);
     proc.on("close", (code) => {
         if (code === 0)
@@ -64,7 +65,7 @@ const setVolume = (volume) => new Promise((resolve, reject) => {
  */
 const setMuted = (muted) => new Promise((resolve, reject) => {
 
-    const proc = execFile(exe, ["setmuted", muted.toString()]);
+    const proc = spawn(exe, ["setmuted", muted.toString()]);
     proc.on("error", reject);
     proc.on("close", (code) => {
         if (code === 0)
@@ -84,7 +85,7 @@ class VolumePool extends EventEmitter {
      */
     start(interval) {
 
-        this.#proc = execFile(exe, ["pool", interval.toString()]);
+        this.#proc = spawn(exe, ["pool", interval.toString()]);
 
         let data = "";
         this.#proc.stdout.on("data", (chunk) => {
