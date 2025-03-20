@@ -20,6 +20,7 @@ module.exports.start = async (config, voicemeeter) => {
     const c = new RPC.Client({ transport: "ipc" });
     c.on("ready", () => {
         client = c;
+        console.log("Connected to Discord RPC");
         c.subscribe("VOICE_SETTINGS_UPDATE");
         fs.promises.writeFile(tokenPath, c.accessToken);
     });
@@ -31,13 +32,23 @@ module.exports.start = async (config, voicemeeter) => {
         voicemeeter.setStripMute(config.discordMuteSync.micStrip, voiceSettings.mute);
     });
 
-    c.login({
-        clientId: config.discordMuteSync.discordClientId,
-        clientSecret: config.discordMuteSync.discordClientSecret,
-        scopes: ["rpc", "rpc.voice.read", "rpc.voice.write"],
-        redirectUri: config.discordMuteSync.discordRedirectUri,
-        accessToken
-    });
+    try {
+        await c.login({
+            clientId: config.discordMuteSync.discordClientId,
+            scopes: ["rpc", "rpc.voice.read", "rpc.voice.write"],
+            accessToken
+        });
+    } catch (error) {
+        if (error.code === 4009) {
+            c.login({
+                clientId: config.discordMuteSync.discordClientId,
+                clientSecret: config.discordMuteSync.discordClientSecret,
+                scopes: ["rpc", "rpc.voice.read", "rpc.voice.write"],
+                redirectUri: config.discordMuteSync.discordRedirectUri
+            });
+        } else
+            throw error;
+    }
 };
 
 module.exports.voicemeeterParameterDirty = (config, voicemeeter) => {
