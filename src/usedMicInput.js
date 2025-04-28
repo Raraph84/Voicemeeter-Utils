@@ -38,7 +38,7 @@ module.exports.voicemeeterParameterDirty = (config, voicemeeter) => {
 
     busesUsed.sent = sentBuses.filter((bus) => !voicemeeter.getBusMute(bus.id)).map((bus) => bus.shortName);
     busesUsed.physical = sentBuses.filter((bus) => !bus.isVirtual && voicemeeter.getRawParameterString(`Bus[${bus.id}].device.name`)).map((bus) => bus.shortName);
-    busesUsed.stripMuted = !!voicemeeter.getStripMute(config.usedMicInput.micStrip);
+    //busesUsed.stripMuted = !!voicemeeter.getStripMute(config.usedMicInput.micStrip);
 
     updateUsed(config, voicemeeter);
 };
@@ -62,12 +62,11 @@ const updateUsed = (config, voicemeeter) => {
     oldUsed = used;
 
     const device = voicemeeter.inputDevices.find(used ? config.usedMicInput.usedInput : config.usedMicInput.unusedInput);
-    if (!device) return;
 
     const current = voicemeeter.getRawParameterString(`Strip[${config.usedMicInput.micStrip}].device.name`);
-    if (current === device.name) return;
+    if (current === device?.name ?? "") return;
 
-    const type = { 1: "wdm", 2: "ks", 3: "mme", 4: "asio" }[device.type];
+    const type = { 1: "wdm", 2: "ks", 3: "mme", 4: "asio" }[device?.type ?? 1];
 
-    voicemeeter.setRawParameterString(`Strip[${config.usedMicInput.micStrip}].device.${type}`, device.name);
+    voicemeeter.setRawParameterString(`Strip[${config.usedMicInput.micStrip}].device.${type}`, device?.name ?? "");
 };
