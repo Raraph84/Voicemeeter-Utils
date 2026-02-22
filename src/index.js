@@ -7,14 +7,21 @@ app.on("ready", async () => {
 
     const tray = new Tray(join(__dirname, "assets", "unmuted.png"));
     const updateContextMenu = () => tray.setContextMenu(Menu.buildFromTemplate([
-        { label: "Close", click: () => app.quit() },
+        ...(config.devicePluggedReloadInterval ? [{
+            label: (config.devicePluggedReloadEnabled ? "Disable" : "Enable") + " Device Plugged Reload",
+            click: () => {
+                config.devicePluggedReloadEnabled = !config.devicePluggedReloadEnabled;
+                updateContextMenu();
+            }
+        }] : []),
         ...(config.discordMuteSync ? [{
             label: (config.discordMuteSync.enabled ? "Disable" : "Enable") + " Discord Mute Sync",
             click: () => {
                 config.discordMuteSync.enabled = !config.discordMuteSync.enabled;
                 updateContextMenu();
             }
-        }] : [])
+        }] : []),
+        { label: "Close", click: () => app.quit() }
     ]));
     updateContextMenu();
     tray.on("click", () => tray.popUpContextMenu());

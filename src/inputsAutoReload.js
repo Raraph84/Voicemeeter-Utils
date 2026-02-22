@@ -1,11 +1,13 @@
 let interval = null;
 
 module.exports.start = (config, voicemeeter) => {
+    if (!config.devicePluggedReloadInterval) return;
 
     voicemeeter.updateDeviceList();
     let oldVoicemeeterInputDevices = voicemeeter.inputDevices;
     let oldVoicemeeterOutputDevices = voicemeeter.outputDevices;
     interval = setInterval(() => {
+        if (!config.devicePluggedReloadEnabled) return;
 
         voicemeeter.updateDeviceList();
         const newVoicemeeterInputDevices = voicemeeter.inputDevices;
