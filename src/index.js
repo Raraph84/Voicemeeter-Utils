@@ -13,31 +13,31 @@ app.on("ready", async () => {
     voicemeeter.login();
 
     voicemeeter.isParametersDirty();
-    require("./muteindicator").start(config, voicemeeter, tray);
+    require("./muteIndicator").start(config, voicemeeter, tray);
     require("./usedMicInput").start(config, voicemeeter);
     require("./discordMuteSync").start(config, voicemeeter);
 
     const voicemeeterParameterDirtyInterval = setInterval(() => {
         if (!voicemeeter.isParametersDirty()) return;
-        require("./muteindicator").voicemeeterParameterDirty(config, voicemeeter, tray);
+        require("./muteIndicator").voicemeeterParameterDirty(config, voicemeeter, tray);
         require("./usedMicInput").voicemeeterParameterDirty(config, voicemeeter);
         require("./discordMuteSync").voicemeeterParameterDirty(config, voicemeeter);
     }, 1000 / 15);
 
-    require("./inputsautoreload").start(config, voicemeeter);
-    require("./remotemute").start(config, voicemeeter);
-    require("./vbanautodisable").start(config, voicemeeter);
+    require("./inputsAutoReload").start(config, voicemeeter);
+    require("./remoteMute").start(config, voicemeeter);
+    require("./vbanAutoDisable").start(config, voicemeeter);
 
     let quitting = false;
     app.on("will-quit", (event) => {
         if (quitting) return;
         event.preventDefault();
-        if (require("./playsound").stop()) return;
+        if (require("./playSound").stop()) return;
         quitting = true;
         clearInterval(voicemeeterParameterDirtyInterval);
-        require("./inputsautoreload").stop();
-        require("./vbanautodisable").stop();
-        require("./remotemute").stop();
+        require("./inputsAutoReload").stop();
+        require("./vbanAutoDisable").stop();
+        require("./remoteMute").stop();
         require("./usedMicInput").stop(config);
         require("./discordMuteSync").stop(config);
         tray.destroy();
