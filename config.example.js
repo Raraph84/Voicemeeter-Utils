@@ -9,6 +9,7 @@ module.exports = {
     // Switch mic strip to usedInput when sound is used
     // Example: Use NVIDIA Broadcast only when the mic strip is used to reduce GPU usage
     usedMicInput: {
+        enabled: true,
         micStrip: 0,
         // Input type 1 is WDM
         unusedInput: (input) => input.name === "Microphone (Yeti Classic)" && input.type === 1,

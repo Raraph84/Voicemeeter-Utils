@@ -14,6 +14,13 @@ app.on("ready", async () => {
                 updateContextMenu();
             }
         }] : []),
+        ...(config.usedMicInput ? [{
+            label: (config.usedMicInput.enabled ? "Disable" : "Enable") + " Used Mic Input Switcher",
+            click: () => {
+                config.usedMicInput.enabled = !config.usedMicInput.enabled;
+                updateContextMenu();
+            }
+        }] : []),
         ...(config.discordMuteSync ? [{
             label: (config.discordMuteSync.enabled ? "Disable" : "Enable") + " Discord Mute Sync",
             click: () => {

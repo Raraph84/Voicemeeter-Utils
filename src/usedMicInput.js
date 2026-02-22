@@ -54,6 +54,7 @@ let oldUsed = false;
  * @param {import("voicemeeter-remote")} voicemeeter 
  */
 const updateUsed = (config, voicemeeter) => {
+    if (!config.usedMicInput.enabled) return;
 
     const used = !busesUsed.stripMuted && voicemeeter.voicemeeterConfig.buses
         .some((bus) => busesUsed.sent.includes(bus.shortName) && (busesUsed.physical.includes(bus.shortName) || busesUsed.windows.includes(bus.shortName)));
