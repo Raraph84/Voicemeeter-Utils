@@ -26,6 +26,7 @@ module.exports.start = async (config, voicemeeter) => {
     });
 
     c.on("VOICE_SETTINGS_UPDATE", (voiceSettings) => {
+        if (!config.discordMuteSync.enabled) return;
         if (voiceSettings.deaf || voiceSettings.mute === oldMute) return;
         oldMute = voiceSettings.mute;
         console.log("Syncing mute from Discord to Voicemeeter");
@@ -52,7 +53,7 @@ module.exports.start = async (config, voicemeeter) => {
 };
 
 module.exports.voicemeeterParameterDirty = (config, voicemeeter) => {
-    if (!config.discordMuteSync) return;
+    if (!config.discordMuteSync?.enabled) return;
 
     const mute = !!voicemeeter.getStripMute(config.discordMuteSync.micStrip);
     if (oldMute === mute) return;

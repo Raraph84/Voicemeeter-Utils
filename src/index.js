@@ -6,7 +6,17 @@ const config = require("../config");
 app.on("ready", async () => {
 
     const tray = new Tray(join(__dirname, "assets", "unmuted.png"));
-    tray.setContextMenu(Menu.buildFromTemplate([{ label: "Close", click: () => app.quit() }]));
+    const updateContextMenu = () => tray.setContextMenu(Menu.buildFromTemplate([
+        { label: "Close", click: () => app.quit() },
+        ...(config.discordMuteSync ? [{
+            label: (config.discordMuteSync.enabled ? "Disable" : "Enable") + " Discord Mute Sync",
+            click: () => {
+                config.discordMuteSync.enabled = !config.discordMuteSync.enabled;
+                updateContextMenu();
+            }
+        }] : [])
+    ]));
+    updateContextMenu();
     tray.on("click", () => tray.popUpContextMenu());
 
     await voicemeeter.init();

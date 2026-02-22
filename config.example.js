@@ -16,6 +16,7 @@ module.exports = {
 
     // Sync the mute state of a strip to Discord
     discordMuteSync: {
+        enabled: true,
         micStrip: 0,
         discordClientId: "YOUR CLIENT ID",
         discordClientSecret: "YOUR CLIENT SECRET",
